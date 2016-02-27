@@ -1,21 +1,16 @@
+require_relative 'foreign_keys'
 module MissingIndexes
   module AddMissingIndexes
+    include MissingIndexes::ForeignKeys
     def add_missing_indexes(table_hash, options = {})
       table_hash.each do |table_model, reference_columns|
         table_model_name = table_model.table_name
         reflections = table_model.reflections
         reference_columns.each do |reference_column|
-
-          if foreign_key_options = options.delete(:foreign_key_options)
-            to_table =  if reflection_model_name = reflections[reference_column.gsub(MissingIndexes::FOREIGN_KEY_REGEX, "")]
-                          Module.const_get(to_model_name).table_name
-                        else
-                          reflections.detect{|key, reflection| reflection.macro == :belongs_to && reflection.foreign_key.to_s == reference_column}.last.try!(:table_name)
-                        end
-            foreign_key_options[:column] = reference_column.to_sym
-            add_missing_foreign_key(table_model_name, to_table, foreign_key_options)
+          if options[:add_foreign_key]
+            deal_with_foreign_key(table_model_name, reference_column, reflections, options[:add_foreign_key])
           end
-          add_missing_foreign_key_index(table_model_name, reference_column, options)
+          add_missing_foreign_key_index(table_model_name, reference_column, options.except(:add_foreign_key))
         end
       end
     end
@@ -31,12 +26,6 @@ module MissingIndexes
         object = respond_to?(:add_index) ? self : connection
         object.send :add_index, table_model_name.to_sym, reference_column.to_sym, options
       end
-    end
-
-    def add_missing_foreign_key(from_table, to_table, options = {})
-      raise "must implement an 'add_foreign_key' method" if !respond_to?(:add_foreign_key) && !respond_to?(:connection)
-      object = respond_to?(:add_foreign_key) ? self : self.connection
-      object.send :add_foreign_key, from_table.to_sym, to_table.to_sym, options
     end
   end
 end
