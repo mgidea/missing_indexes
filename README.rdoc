@@ -1,3 +1,5 @@
 = MissingIndexes
 
-This project rocks and uses MIT-LICENSE.
+Extension to ActiveMigration that audits foriegn keys and indexes based on _id naming convention.
+Broken up into a query class `MissingIndex` that holds the information about indexes and foreign keys
+and utility classes that will add in the missing foreign keys and indexes
